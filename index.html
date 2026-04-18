@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Notes App</title>
+
+<style>
+*{
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+  font-family:'Segoe UI',sans-serif;
+}
+
+body{
+  background: linear-gradient(135deg,#e0e7ff,#f8fafc);
+  min-height:100vh;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+}
+
+/* Container */
+.container{
+  width:100%;
+  max-width:400px;
+  padding:15px;
+}
+
+/* Card */
+.card{
+  background:#ffffff;
+  padding:25px;
+  border-radius:15px;
+  box-shadow:0 8px 25px rgba(0,0,0,0.08);
+}
+
+/* Title */
+.title{
+  text-align:center;
+  margin-bottom:15px;
+  color:#4f46e5;
+}
+
+/* Inputs */
+input, textarea{
+  width:100%;
+  padding:12px;
+  margin:10px 0;
+  border-radius:8px;
+  border:1px solid #ddd;
+  font-size:14px;
+}
+
+/* Buttons */
+button{
+  width:100%;
+  padding:12px;
+  border:none;
+  border-radius:8px;
+  background:#6366f1;
+  color:white;
+  cursor:pointer;
+  transition:0.3s;
+}
+
+button:hover{
+  background:#4f46e5;
+}
+
+/* Link */
+.link{
+  text-align:center;
+  margin-top:10px;
+  font-size:14px;
+  color:#555;
+  cursor:pointer;
+}
+
+.link span{
+  color:#6366f1;
+  font-weight:bold;
+}
+
+/* Notes */
+.note{
+  background:#f1f5f9;
+  padding:12px;
+  border-radius:10px;
+  margin-top:10px;
+  font-size:14px;
+}
+
+.note small{
+  display:block;
+  margin-top:5px;
+  color:#64748b;
+}
+
+/* Logout */
+.logout{
+  background:#ef4444;
+  margin-top:10px;
+}
+
+/* Hidden */
+.hidden{display:none}
+
+/* Responsive */
+@media(max-width:480px){
+  .card{
+    padding:20px;
+  }
+}
+</style>
+
+</head>
+<body>
+
+<div class="container">
+
+<!-- LOGIN -->
+<div id="loginPage" class="card">
+  <h2 class="title">Welcome Back</h2>
+
+  <input type="text" id="loginUser" placeholder="Username">
+  <input type="password" id="loginPass" placeholder="Password">
+
+  <button onclick="login()">Login</button>
+
+  <div class="link" onclick="showRegister()">
+    Don’t have an account? <span>Register</span>
+  </div>
+</div>
+
+<!-- REGISTER -->
+<div id="registerPage" class="card hidden">
+  <h2 class="title">Create Account</h2>
+
+  <input type="text" id="regUser" placeholder="Username">
+  <input type="password" id="regPass" placeholder="Password">
+
+  <button onclick="register()">Register</button>
+
+  <div class="link" onclick="showLogin()">
+    Already have an account? <span>Login</span>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dashboard" class="card hidden">
+  <h2 class="title">My Notes</h2>
+
+  <textarea id="noteInput" placeholder="Write your note..."></textarea>
+  <button onclick="addNote()">Add Note</button>
+
+  <div id="notes"></div>
+
+  <button class="logout" onclick="logout()">Logout</button>
+</div>
+
+</div>
+
+<script>
+
+let currentUser = null;
+
+/* SWITCH */
+function showRegister(){
+  loginPage.classList.add('hidden');
+  registerPage.classList.remove('hidden');
+}
+
+function showLogin(){
+  registerPage.classList.add('hidden');
+  loginPage.classList.remove('hidden');
+}
+
+/* REGISTER */
+function register(){
+  let u = regUser.value;
+  let p = regPass.value;
+
+  if(!u || !p){
+    alert("Fill all fields");
+    return;
+  }
+
+  if(localStorage.getItem(u)){
+    alert("User already exists");
+    return;
+  }
+
+  localStorage.setItem(u,p);
+
+  alert("Account created!");
+
+  regUser.value="";
+  regPass.value="";
+
+  showLogin();
+}
+
+/* LOGIN */
+function login(){
+  let u = loginUser.value;
+  let p = loginPass.value;
+
+  if(localStorage.getItem(u) === p){
+    currentUser = u;
+
+    loginPage.classList.add('hidden');
+    dashboard.classList.remove('hidden');
+
+    loadNotes();
+
+    loginUser.value="";
+    loginPass.value="";
+  }else{
+    alert("Invalid login");
+  }
+}
+
+/* ADD NOTE WITH DATE & TIME */
+function addNote(){
+  let text = noteInput.value;
+
+  if(!text) return;
+
+  let notes = JSON.parse(localStorage.getItem(currentUser+"_notes")||"[]");
+
+  let now = new Date();
+  let dateTime = now.toLocaleString(undefined, {
+    year:'numeric',
+    month:'short',
+    day:'numeric',
+    hour:'2-digit',
+    minute:'2-digit'
+  });
+
+  notes.push({
+    content: text,
+    time: dateTime
+  });
+
+  localStorage.setItem(currentUser+"_notes", JSON.stringify(notes));
+
+  noteInput.value="";
+
+  loadNotes();
+}
+
+/* LOAD NOTES */
+function loadNotes(){
+  let notes = JSON.parse(localStorage.getItem(currentUser+"_notes")||"[]");
+
+  let notesContainer = document.getElementById("notes");
+  notesContainer.innerHTML="";
+
+  notes.forEach((n,i)=>{
+    let div = document.createElement("div");
+    div.className="note";
+
+    div.innerHTML = `
+      <div>${n.content}</div>
+      <small>${n.time}</small>
+      <br><br>
+      <button onclick="deleteNote(${i})">Delete</button>
+    `;
+
+    notesContainer.appendChild(div);
+  });
+}
+
+/* DELETE */
+function deleteNote(i){
+  let notes = JSON.parse(localStorage.getItem(currentUser+"_notes"));
+  notes.splice(i,1);
+
+  localStorage.setItem(currentUser+"_notes", JSON.stringify(notes));
+
+  loadNotes();
+}
+
+/* LOGOUT */
+function logout(){
+  currentUser = null;
+
+  dashboard.classList.add('hidden');
+  loginPage.classList.remove('hidden');
+}
+
+</script>
+
+</body>
+</html>
